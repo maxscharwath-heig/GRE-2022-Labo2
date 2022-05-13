@@ -3,14 +3,13 @@ package schawath.maxime;
 import graph.core.impl.Digraph;
 import graph.core.impl.SimpleWeightedEdge;
 
-import java.nio.file.attribute.AclEntryType;
 import java.util.*;
 
-public class DijkstraBidirectional<V extends CartesianVertex,D extends Digraph<V, SimpleWeightedEdge<V>>> {
+public class DijkstraBidirectional<V extends CartesianVertex, D extends Digraph<V, SimpleWeightedEdge<V>>> {
     private final D graph;
 
-    private double mu = Double.POSITIVE_INFINITY;
-    private int[] executed;
+    private double mu;
+    private int step;
 
     public DijkstraBidirectional(D graph) {
         this.graph = graph;
@@ -18,54 +17,75 @@ public class DijkstraBidirectional<V extends CartesianVertex,D extends Digraph<V
 
     private boolean step(DijkstraContext ctx, DijkstraContext ctx2) {
         //get the vertex with the smallest distance
-        if(ctx.isQueueEmpty())return false;
+        if (ctx.isQueueEmpty()) return false;
         var vi = ctx.pollQueue();
-        if(ctx.getDelta(vi.id()) == Double.POSITIVE_INFINITY) {
+        if (ctx.getDelta(vi.id()) == Double.POSITIVE_INFINITY) {
             return false;
         }
         //for each neighbor of u
-        for(SimpleWeightedEdge<V> ej : graph.getSuccessorList(vi.id())) {
+        for (SimpleWeightedEdge<V> ej : graph.getSuccessorList(vi.id())) {
+            ++step;
             var vj = ej.to();
-            if(ctx.isInQueue(vj.id()) && ctx.getDelta(vj.id()) > ctx.getDelta(vi.id()) + ej.weight()) {;
+            if (ctx.isInQueue(vj.id()) && ctx.getDelta(vj.id()) > ctx.getDelta(vi.id()) + ej.weight()) {
                 ctx.setDelta(vj.id(), ctx.getDelta(vi.id()) + ej.weight());
-                ctx.setPredecessor(vj.id(),vi.id());
+                ctx.setPredecessor(vj.id(), vi.id());
                 ctx.updateQueue(vj);
             }
             //mu update
             double m;
             if (!ctx2.isInQueue(vj.id()) && mu > (m = ctx.getDelta(vi.id()) + ctx2.getDelta(vj.id()) + ej.weight())) {
                 mu = m;
-                System.out.println("mu = " + mu);
+                ctx.subTo = vi.id();
             }
         }
         if (!ctx2.isInQueue(vi.id())) {
-            System.out.println("DONE !, mu = " + mu);
+            ctx.subTo = vi.id();
             return false;
         }
         return true;
     }
 
     void print(DijkstraContext ctx) {
-        for(int i = 0; i < graph.getNVertices(); i++) {
-            int cS = i;
-            LinkedList<Integer> s = new LinkedList<>();
-            while(cS != -1) {
-                s.add(0, cS);
-                cS = ctx.getPredecessor(cS);
-            }
-            System.out.println("From " + ctx.from + " to " + i + " : " + ctx.getDelta(i) + " " + s);
+        int to = ctx.subTo;
+        int cS = to;
+        LinkedList<Integer> s = new LinkedList<>();
+        while (cS != -1) {
+            s.add(0, cS);
+            cS = ctx.getPredecessor(cS);
         }
-    }
-    public void run(int from, int to) {
-        //bidirectional dijkstra
-        DijkstraContext forward = new DijkstraContext(from, to);
-        DijkstraContext backward = new DijkstraContext(to, from);
-        while(step(forward,backward) && step(backward,forward));
-        //print(forward);
-        //print(backward);
+        System.out.println("From " + ctx.from + " to " + to + " : " + ctx.getDelta(to) + " " + s);
     }
 
-    private class DijkstraContext{
+    List<Integer> merge(DijkstraContext from, DijkstraContext to) {
+        LinkedList<Integer> s = new LinkedList<>();
+        int cS = from.subTo;
+        while (cS != -1) {
+            s.add(0, cS);
+            cS = from.getPredecessor(cS);
+        }
+        cS = to.getPredecessor(to.subTo);
+        while (cS != -1) {
+            s.add(cS);
+            cS = to.getPredecessor(cS);
+        }
+        return s;
+    }
+
+    public DijkstraResult run(int from, int to) {
+        step = 0;
+        mu = Double.POSITIVE_INFINITY;
+        DijkstraContext forward = new DijkstraContext(from, to);
+        DijkstraContext backward = new DijkstraContext(to, from);
+        while (step(forward, backward) && step(backward, forward)) ;
+        return new DijkstraResult(step, mu, merge(forward, backward)) {
+            @Override
+            void print() {
+                System.out.println("From " + from + " to " + to + " : " + getWeight() + " " + getList() + " in " + getSteps() + " steps");
+            }
+        };
+    }
+
+    private class DijkstraContext {
         private final int from;
         private final int to;
         private final double[] delta;
@@ -73,8 +93,9 @@ public class DijkstraBidirectional<V extends CartesianVertex,D extends Digraph<V
 
         private final boolean[] visited;
         private final Queue<V> queue;
+        public int subTo;
 
-        DijkstraContext(int fromVertex, int toVertex){
+        DijkstraContext(int fromVertex, int toVertex) {
             from = fromVertex;
             to = toVertex;
             delta = new double[graph.getNVertices()];
@@ -87,38 +108,40 @@ public class DijkstraBidirectional<V extends CartesianVertex,D extends Digraph<V
             delta[from] = 0;
             queue.addAll(graph.getVertices());
         }
-        public boolean isInQueue(int vertex){
+
+        public boolean isInQueue(int vertex) {
             return visited[vertex];
         }
 
-        public boolean isQueueEmpty(){
+        public boolean isQueueEmpty() {
             return queue.isEmpty();
         }
 
-        public CartesianVertex pollQueue(){
+        public CartesianVertex pollQueue() {
             var v = queue.poll();
+            assert v != null;
             visited[v.id()] = false;
             return v;
         }
 
-        public void updateQueue(V vertex){
+        public void updateQueue(V vertex) {
             queue.remove(vertex);
             queue.add(vertex);
         }
 
-        public void setDelta(int vertex, double value){
+        public void setDelta(int vertex, double value) {
             delta[vertex] = value;
         }
 
-        public double getDelta(int vertex){
+        public double getDelta(int vertex) {
             return delta[vertex];
         }
 
-        public void setPredecessor(int vertex, int predecessor){
+        public void setPredecessor(int vertex, int predecessor) {
             predecessors[vertex] = predecessor;
         }
 
-        public int getPredecessor(int vertex){
+        public int getPredecessor(int vertex) {
             return predecessors[vertex];
         }
     }

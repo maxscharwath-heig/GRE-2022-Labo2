@@ -1,7 +1,6 @@
 package schawath.maxime;
 
 import graph.core.Vertex;
-import graph.data.CartesianVertexData;
 
 public final class CartesianVertex implements Vertex {
     private final int id;

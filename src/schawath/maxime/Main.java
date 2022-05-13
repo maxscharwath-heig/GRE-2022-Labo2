@@ -4,7 +4,6 @@
  */
 package schawath.maxime;
 
-import graph.core.impl.SimpleWeightedEdge;
 import graph.core.impl.SimpleWeightedEdgeFactory;
 import graph.reader.CartesianGraphReader;
 
@@ -23,7 +22,12 @@ public class Main {
                 new SimpleWeightedEdgeFactory<>(new CartesianEdgeWeighter()),
                 DATA_FOLDER + "R10000_1.txt"
         ).graph();
+        var dijkstra1 = new Dijkstra<>(graph);
+        var r1 = dijkstra1.run(0, 14);
+        r1.print();
+
         var dijkstra2 = new DijkstraBidirectional<>(graph);
-        dijkstra2.run(234,8940);
+        var r2 = dijkstra2.run(0, 14);
+        r2.print();
     }
 }
