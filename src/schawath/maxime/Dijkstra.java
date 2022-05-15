@@ -7,13 +7,16 @@ import java.util.*;
 
 public class Dijkstra<V extends CartesianVertex, D extends Digraph<V, SimpleWeightedEdge<V>>> {
     private final D graph;
-    private int step = 0;
+    private int steps;
+    private int nbVisited;
 
     public Dijkstra(D graph) {
         this.graph = graph;
     }
 
     public DijkstraResult run(int from, int to) {
+        nbVisited = 0;
+        steps = 0;
         double[] distance = new double[graph.getNVertices()];
         int[] p = new int[graph.getNVertices()];
         Arrays.fill(distance, Double.POSITIVE_INFINITY);
@@ -27,13 +30,14 @@ public class Dijkstra<V extends CartesianVertex, D extends Digraph<V, SimpleWeig
         while (!queue.isEmpty()) {
             //get the vertex with the smallest distance
             var vi = queue.poll();
+            nbVisited++;
             queueBoolean[vi.id()] = false;
             if (distance[vi.id()] == Double.POSITIVE_INFINITY) {
                 break;
             }
             //for each neighbor of u
             for (SimpleWeightedEdge<V> ej : graph.getSuccessorList(vi.id())) {
-                ++step;
+                ++steps;
                 var vj = ej.to();
                 if (queueBoolean[vj.id()] && distance[vj.id()] > distance[vi.id()] + ej.weight()) {
                     distance[vj.id()] = distance[vi.id()] + ej.weight();
@@ -50,10 +54,10 @@ public class Dijkstra<V extends CartesianVertex, D extends Digraph<V, SimpleWeig
             s.add(0, cS);
             cS = p[cS];
         }
-        return new DijkstraResult(step, distance[to], s) {
+        return new DijkstraResult(steps, nbVisited, distance[to], s) {
             @Override
             void print() {
-                System.out.println("From " + from + " to " + to + " : " + getWeight() + " " + getList() + " in " + getSteps() + " steps");
+                System.out.println("From " + from + " to " + to + " : " + getDistance() + " " + getList() + " in " + getSteps() + " steps and " + getNbVisited() + " nodes visited");
             }
         };
     }

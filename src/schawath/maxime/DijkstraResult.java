@@ -4,21 +4,27 @@ import java.util.List;
 
 public abstract class DijkstraResult {
     final int steps;
-    final double weight;
+    final double distance;
     final List<Integer> list;
+    private final int nbVisited;
 
-    DijkstraResult(int steps, double weight, List<Integer> list) {
+    DijkstraResult(int steps, int nbVisited, double distance, List<Integer> list) {
         this.list = list;
-        this.weight = weight;
+        this.distance = distance;
         this.steps = steps;
+        this.nbVisited = nbVisited;
     }
 
     public int getSteps() {
         return steps;
     }
 
-    public double getWeight() {
-        return weight;
+    public int getNbVisited() {
+        return nbVisited;
+    }
+
+    public double getDistance() {
+        return distance;
     }
 
     public List<Integer> getList() {

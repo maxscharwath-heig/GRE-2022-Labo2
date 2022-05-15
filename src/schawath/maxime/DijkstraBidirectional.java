@@ -9,7 +9,8 @@ public class DijkstraBidirectional<V extends CartesianVertex, D extends Digraph<
     private final D graph;
 
     private double mu;
-    private int step;
+    private int steps;
+    private int nbVisited;
 
     public DijkstraBidirectional(D graph) {
         this.graph = graph;
@@ -19,12 +20,13 @@ public class DijkstraBidirectional<V extends CartesianVertex, D extends Digraph<
         //get the vertex with the smallest distance
         if (ctx.isQueueEmpty()) return false;
         var vi = ctx.pollQueue();
+        nbVisited++;
         if (ctx.getDelta(vi.id()) == Double.POSITIVE_INFINITY) {
             return false;
         }
         //for each neighbor of u
         for (SimpleWeightedEdge<V> ej : graph.getSuccessorList(vi.id())) {
-            ++step;
+            ++steps;
             var vj = ej.to();
             if (ctx.isInQueue(vj.id()) && ctx.getDelta(vj.id()) > ctx.getDelta(vi.id()) + ej.weight()) {
                 ctx.setDelta(vj.id(), ctx.getDelta(vi.id()) + ej.weight());
@@ -45,17 +47,6 @@ public class DijkstraBidirectional<V extends CartesianVertex, D extends Digraph<
         return true;
     }
 
-    void print(DijkstraContext ctx) {
-        int to = ctx.subTo;
-        int cS = to;
-        LinkedList<Integer> s = new LinkedList<>();
-        while (cS != -1) {
-            s.add(0, cS);
-            cS = ctx.getPredecessor(cS);
-        }
-        System.out.println("From " + ctx.from + " to " + to + " : " + ctx.getDelta(to) + " " + s);
-    }
-
     List<Integer> merge(DijkstraContext from, DijkstraContext to) {
         LinkedList<Integer> s = new LinkedList<>();
         int cS = from.subTo;
@@ -72,15 +63,16 @@ public class DijkstraBidirectional<V extends CartesianVertex, D extends Digraph<
     }
 
     public DijkstraResult run(int from, int to) {
-        step = 0;
+        steps = 0;
+        nbVisited = 0;
         mu = Double.POSITIVE_INFINITY;
         DijkstraContext forward = new DijkstraContext(from, to);
         DijkstraContext backward = new DijkstraContext(to, from);
         while (step(forward, backward) && step(backward, forward)) ;
-        return new DijkstraResult(step, mu, merge(forward, backward)) {
+        return new DijkstraResult(steps, nbVisited, mu, merge(forward, backward)) {
             @Override
             void print() {
-                System.out.println("From " + from + " to " + to + " : " + getWeight() + " " + getList() + " in " + getSteps() + " steps");
+                System.out.println("From " + from + " to " + to + " : " + getDistance() + " " + getList() + " in " + getSteps() + " steps and " + getNbVisited() + " nodes visited");
             }
         };
     }
